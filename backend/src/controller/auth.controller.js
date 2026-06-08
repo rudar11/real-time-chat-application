@@ -39,11 +39,24 @@ async function loginUser(req, res) {
 
         const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "3d" });
 
-        res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-        res.status(200).json({ message: "Logged in successfully", user: { name: user.name, email: user.email }, token });
+        res.cookie("token", token, { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production' 
+        });
+
+        // Yahan _id add kar diya hai
+        res.status(200).json({ 
+            message: "Logged in successfully", 
+            user: { 
+                _id: user._id, 
+                name: user.name, 
+                email: user.email 
+            }, 
+            token 
+        });
+        
     } catch (error) {
         res.status(500).json({ message: "Login failed", error: error.message });
     }
 }
-
 module.exports = { registerUser, loginUser };
