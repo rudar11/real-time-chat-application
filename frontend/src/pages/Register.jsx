@@ -17,10 +17,19 @@ const Register = () => {
     setError(null);
 
     try {
-    
-      await api.post('/api/auth/register', formData);
-      alert("Registration successful! Now login.");
-      navigate('/login'); 
+      // 1. Register API call
+      const response = await api.post('/api/auth/register', formData);
+      
+
+      // Backend se jo user info aayi hai, use LocalStorage mein set karo
+      localStorage.setItem('user', JSON.stringify({ 
+        name: response.data.user.name, 
+        id: response.data.user._id // Backend se _id aa raha hai toh ye use karo
+      }));
+
+   
+      navigate('/chat'); 
+      
     } catch (err) {
       const msg = err.response?.data?.message || "Registration failed!";
       setError(msg);

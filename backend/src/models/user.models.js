@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
         required: [true, "Email is required for creating a user"],
         trim: true,
         lowercase: true,
-        match: [/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Invalid Email address"],
+       
         unique: [true, "email already exists"]
     },
     name: {
@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: [true, "Password is required for creating an account"],
-        minlength: [6, "password should contain more than 6 character"],
+        
         select: false
     }
 

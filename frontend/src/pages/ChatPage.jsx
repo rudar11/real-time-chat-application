@@ -1,75 +1,168 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import socket from '../socket';
-import { 
-  Container, Box, TextField, Button, Paper, 
-  List, ListItem, Typography, Divider 
-} from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axiosConfig';
+import { Box, CssBaseline } from '@mui/material'; 
+
+import Sidebar from '../components/Sidebar';
+import ChatArea from '../components/ChatArea';
+import CreateRoomDialog from '../components/CreateRoomDialog';
 
 const ChatPage = () => {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const room = "General"; 
+  const [activeRoom, setActiveRoom] = useState('General'); 
+  const [onlineUsers, setOnlineUsers] = useState([]); 
+  const [availableRooms, setAvailableRooms] = useState(['General']); 
+  
+  const [openRoomDialog, setOpenRoomDialog] = useState(false);
+  const [typingUser, setTypingUser] = useState('');
+  const typingTimeoutRef = useRef(null);
 
-  // LocalStorage  User fetch 
-  const user = JSON.parse(localStorage.getItem('user')) || { name: "Guest", id: socket.id };
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user'));
 
+  // 1. Fetch Rooms Fix (Hamesha 'General' list mein rahega)
   useEffect(() => {
-    // Join room
-    socket.emit('joinRoom', { username: user.name, room });
+    const fetchRooms = async () => {
+      try {
+        const response = await api.get('/api/rooms');
+        const roomNames = response.data.map(r => r.name);
+        
+        //  BUG FIX: 'General' ko forcefully array  merge kiya taaki wo gayab na ho
+        const allRooms = Array.from(new Set(['General', ...roomNames]));
+        setAvailableRooms(allRooms);
+        
+        if (!allRooms.includes(activeRoom)) setActiveRoom(allRooms[0]);
+      } catch (error) {
+        console.error("Error fetching rooms:", error);
+      }
+    };
+    fetchRooms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // Events Listeners
-    socket.on('chatHistory', (history) => setMessages(history));
-    socket.on('message', (msg) => setMessages((prev) => [...prev, msg]));
+  // 2. Socket Fix (No Duplicate/Triple Events)
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Pehle existing events clear karo taaki double trigger na ho
+    socket.off('chatHistory');
+    socket.off('message');
+    socket.off('onlineUsers');
+    socket.off('userTyping');
+    socket.off('newRoom');
+
+    socket.emit('joinRoom', { username: user.name, room: activeRoom });
+
+    const handleChatHistory = (history) => setMessages(history);
+    const handleMessage = (msg) => setMessages((prev) => [...prev, msg]);
+    const handleOnlineUsers = (users) => setOnlineUsers(users);
+    
+    const handleUserTyping = ({ username }) => {
+      if (username !== user.name) { 
+        setTypingUser(username);
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+          setTypingUser(''); 
+        }, 2000);
+      }
+    };
+
+    const handleNewRoom = (newRoomName) => {
+      setAvailableRooms((prevRooms) => {
+        if (!prevRooms.includes(newRoomName)) {
+          return [...prevRooms, newRoomName];
+        }
+        return prevRooms;
+      });
+    };
+
+    socket.on('chatHistory', handleChatHistory);
+    socket.on('message', handleMessage);
+    socket.on('onlineUsers', handleOnlineUsers);
+    socket.on('userTyping', handleUserTyping); 
+    socket.on('newRoom', handleNewRoom); 
 
     return () => {
-      socket.off('chatHistory');
-      socket.off('message');
+      socket.off('chatHistory', handleChatHistory);
+      socket.off('message', handleMessage);
+      socket.off('onlineUsers', handleOnlineUsers);
+      socket.off('userTyping', handleUserTyping);
+      socket.off('newRoom', handleNewRoom); 
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
-  }, [user.name, room]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRoom, navigate, user?.name, user?.id]);
 
-  const sendMessage = () => {
-    if (input.trim()) {
-      socket.emit('chatMessage', { 
-        room, 
-        senderId: user.id, 
-        senderName: user.name, 
-        text: input 
-      });
-      setInput('');
+  const handleSendMessage = (text) => {
+    socket.emit('chatMessage', { 
+      room: activeRoom, 
+      senderId: user.id, 
+      senderName: user.name, 
+      text 
+    });
+  };
+
+  const handleTyping = () => {
+    socket.emit('typing', { room: activeRoom, username: user.name });
+  };
+
+  const handleCreateRoom = async (newRoomName) => {
+    try {
+      await api.post('/api/rooms/create', { name: newRoomName });
+      
+      setAvailableRooms([...availableRooms, newRoomName]);
+      setActiveRoom(newRoomName);
+      setOpenRoomDialog(false);
+
+      socket.emit('roomCreated', newRoomName);
+      
+    } catch (error) {
+      alert(error.response?.data?.message || "Error creating room");
     }
   };
 
-  return (
-    <Container maxWidth="md" sx={{ mt: 4, height: '90vh' }}>
-      <Paper elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Room: {room}</Typography>
-        <Divider />
-        
-        {/* Messages List */}
-        <List sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
-          {messages.map((msg, i) => (
-            <ListItem key={i} sx={{ flexDirection: 'column', alignItems: msg.sender === user.name ? 'flex-end' : 'flex-start' }}>
-              <Box sx={{ bgcolor: msg.sender === user.name ? '#dcf8c6' : '#f1f0f0', p: 1.5, borderRadius: 2, maxWidth: '80%' }}>
-                <Typography variant="caption" sx={{ fontWeight: 'bold' }}>{msg.senderName || msg.sender}</Typography>
-                <Typography>{msg.content}</Typography>
-              </Box>
-            </ListItem>
-          ))}
-        </List>
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
-        {/* Input Area */}
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <TextField 
-            fullWidth 
-            value={input} 
-            onChange={(e) => setInput(e.target.value)} 
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Type a message..." 
-          />
-          <Button variant="contained" onClick={sendMessage}>Send</Button>
+  return (
+    <>
+      <CssBaseline />
+      <Box sx={{ display: 'flex', height: '100vh', width: '100vw', bgcolor: '#e0e7ff', p: { xs: 0, sm: 2, md: 3 } }}>
+        <Box sx={{ display: 'flex', width: '100%', height: '100%', bgcolor: 'white', borderRadius: { xs: 0, sm: 3 }, boxShadow: 24, overflow: 'hidden' }}>
+          
+          <Box sx={{ width: { xs: '35%', sm: '250px', md: '300px' }, minWidth: '150px', height: '100%', borderRight: '1px solid #e0e0e0' }}>
+            <Sidebar 
+              availableRooms={availableRooms} 
+              activeRoom={activeRoom} 
+              setActiveRoom={setActiveRoom} 
+              onlineUsers={onlineUsers} 
+              handleLogout={handleLogout}
+              onOpenDialog={() => setOpenRoomDialog(true)}
+            />
+          </Box>
+
+          <Box sx={{ flexGrow: 1, height: '100%' }}>
+            <ChatArea 
+              activeRoom={activeRoom} 
+              messages={messages} 
+              user={user} 
+              onSendMessage={handleSendMessage}
+              onTyping={handleTyping}    
+              typingUser={typingUser}    
+            />
+          </Box>
+
         </Box>
-      </Paper>
-    </Container>
+      </Box>
+
+      <CreateRoomDialog open={openRoomDialog} onClose={() => setOpenRoomDialog(false)} onCreateRoom={handleCreateRoom} />
+    </>
   );
 };
 
