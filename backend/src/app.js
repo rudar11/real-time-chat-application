@@ -1,18 +1,25 @@
+require('dotenv').config();
 const express = require('express');
-const cookieparser = require('cookie-parser')
-
-const connectdb = require('./db/db')
+const cookieParser = require('cookie-parser');
+const cors = require('cors'); // Install this: npm install cors
+const connectdb = require('./db/db');
+const authRouter = require('./routes/auth.routes')
 const app = express();
-app.use(cookieparser())
-app.use(express.json())
-connectdb()
+
+// Middleware
+app.use(cors()); // Allow frontend to talk to backend
+app.use(express.json());
+app.use(cookieParser());
+
+// Database connection
+connectdb();
+
+// Test Route
+app.get('/', (req, res) => {
+    res.send("Chat Server is running...");
+});
 
 
+app.use('/api/auth', authRouter)
 
-
-
-
-
-
-
-module.exports = app
+module.exports = app;
