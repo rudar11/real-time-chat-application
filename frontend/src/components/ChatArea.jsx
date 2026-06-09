@@ -92,7 +92,7 @@ const ChatArea = ({ activeRoom, messages, user, onSendMessage, onTyping, typingU
       <Box sx={{ px: 3, py: 0.5, minHeight: '28px', bgcolor: 'transparent' }}>
         {typingUser && (
           <Typography variant="caption" sx={{ fontStyle: 'italic', color: '#555', fontWeight: 'bold', bgcolor: 'rgba(255,255,255,0.8)', px: 1.5, py: 0.5, borderRadius: 5 }}>
-            ✏️ {typingUser} is typing...
+             {typingUser} is typing...
           </Typography>
         )}
       </Box>

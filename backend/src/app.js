@@ -7,7 +7,7 @@ const authRouter = require('./routes/auth.routes');
 const app = express();
 const roomRouter = require('./routes/room.routes');
 
-// --- CORS CONFIGURATION ---
+// --- CORS CONFIGURATIONy //  ---
 app.use(cors({
     origin: "http://localhost:5173", 
     credentials: true,               
