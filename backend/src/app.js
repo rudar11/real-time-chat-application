@@ -9,7 +9,10 @@ const roomRouter = require('./routes/room.routes');
 
 // --- CORS CONFIGURATIONy //  ---
 app.use(cors({
-    origin: "http://localhost:5173", 
+    origin: [
+        "http://localhost:5173", 
+        "https://real-time-chat-application-coral-chi.vercel.app" //  live Vercel link
+    ], 
     credentials: true,               
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
