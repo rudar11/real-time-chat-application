@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
     roomId: {
-        type: String, // Ye String hona bahut zaruri hai
+        type: String, 
         required: true
     },
     sender: {
@@ -12,6 +12,12 @@ const messageSchema = new mongoose.Schema({
     content: {
         type: String,
         required: true
+    },
+    // 🔥 YEH NAYA FIELD ADD KIYA HAI TICKS KE LIYE 🔥
+    status: {
+        type: String,
+        enum: ['sent', 'seen'],
+        default: 'sent'
     }
 }, { timestamps: true });
 

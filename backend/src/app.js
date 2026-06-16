@@ -15,7 +15,7 @@ app.use(cors({
     ], 
     credentials: true,               
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"]//jo data laya hu wo JSON format mein hai
 }));
 
 // Middleware
