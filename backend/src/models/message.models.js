@@ -11,9 +11,15 @@ const messageSchema = new mongoose.Schema({
     },
     content: {
         type: String,
-        required: true
+        required: true // Normal text ho ya ImageKit ka URL, dono isi mein aayenge
     },
-    // 🔥 YEH NAYA FIELD ADD KIYA HAI TICKS KE LIYE 🔥
+    // 🔥 YEH NAYA FIELD IMAGE KE LIYE ADD KIYA HAI 🔥
+    msgType: {
+        type: String,
+        enum: ['text', 'image'], // Ya toh 'text' hoga ya 'image'
+        default: 'text' // By default hum sabko text maanenge
+    },
+    // 🔥 YEH FIELD TICKS KE LIYE HAI 🔥
     status: {
         type: String,
         enum: ['sent', 'seen'],
